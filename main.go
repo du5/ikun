@@ -5,6 +5,7 @@ import (
 	"log"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/du5/ikun/mp3"
@@ -14,10 +15,11 @@ import (
 type BoundedList struct {
 	*list.List
 	maxSize int
+	sync.Mutex
 }
 
 type valWithTime struct {
-	val  rune
+	val  string
 	time int64
 }
 
@@ -25,10 +27,12 @@ func (v valWithTime) String() string {
 	return strings.ToLower(string(v.val))
 }
 
-func (b *BoundedList) Push(val rune) {
+func (b *BoundedList) Push(val ...string) {
+	b.Lock()
+	defer b.Unlock()
 	// 在尾部插入
 	b.PushBack(valWithTime{
-		val,
+		val[0],
 		time.Now().Unix(),
 	})
 	// 超过容量则移除头部（最旧）元素
@@ -38,23 +42,26 @@ func (b *BoundedList) Push(val rune) {
 			b.Remove(front)
 		}
 	}
+	if len(val) > 1 {
+		mp3.Play(val[1])
+	}
 }
 
-func (b *BoundedList) GetAll() []valWithTime {
-	arr := make([]valWithTime, 0, b.Len())
+func (b *BoundedList) GetAll() (l []valWithTime, start int64) {
 	for e := b.Front(); e != nil; e = e.Next() {
-		arr = append(arr, e.Value.(valWithTime))
+		l = append(l, e.Value.(valWithTime))
 	}
-	return arr
+	if len(l) > 0 {
+		start = l[0].time
+	}
+	return
 }
 
-func (b *BoundedList) GetAllStrWithTT() (str string, start int64) {
-	temp := b.GetAll()
-	for _, v := range temp {
+func (b *BoundedList) GetAllStr() (str string, start int64) {
+	var l []valWithTime
+	l, start = b.GetAll()
+	for _, v := range l {
 		str += v.String()
-	}
-	if len(temp) > 0 {
-		start = temp[0].time
 	}
 	return
 }
@@ -65,87 +72,77 @@ func init() {
 	b = &BoundedList{
 		list.New(),
 		3,
+		sync.Mutex{},
 	}
 }
 
+func hookRegister(k string) {
+	hook.Register(hook.KeyDown, []string{k}, func(e hook.Event) {
+		b.Push(k, k)
+	})
+}
+
 func main() {
-	// 必须要在主线程上（main goroutine）执行
 	runtime.LockOSThread()
 
 	log.Println("开始监听键盘，连续按 3 下 ESC 退出")
 
-	done := make(chan struct{})
-	// 开启一个协程监听事件
-	go func() {
-		events := hook.Start() // 返回一个 channel，里面不断产生键盘/鼠标事件
+	hookRegister("c")
+	hookRegister("r")
+	hookRegister("l")
+	hookRegister("j")
+	hookRegister("z")
+	hookRegister("n")
+	hookRegister("y")
+
+	hook.Register(hook.KeyDown, []string{"m"}, func(e hook.Event) {
+		m := "m_short"
 		defer func() {
-			hook.End()
-			done <- struct{}{}
+			b.Push("m", m)
 		}()
-
-		for e := range events {
-			// 判断是否是键盘事件
-			if e.Kind == hook.KeyDown {
-
-				k := strings.ToLower(string(e.Keychar))
-				switch k {
-				case "z", "j":
-					mp3.Play(mp3.Ji)
-				case "n", "y":
-					mp3.Play(mp3.Ni)
-				case "t":
-					lastEle := b.Back()
-					if lastEle != nil {
-						switch lastEle.Value.(valWithTime).String() {
-						case "n", "y":
-							mp3.Play(mp3.Tai)
-						default:
-							mp3.Play(mp3.Tiao)
-						}
-					} else {
-						mp3.Play(mp3.Tiao)
-					}
-				case "m":
-					switch str, start := b.GetAllStrWithTT(); str {
-					case "jnt", "zyn", "jyn", "znt":
-						if time.Now().Unix()-start < 3 {
-							mp3.Play(mp3.Mei2)
-							continue
-						}
-					}
-					mp3.Play(mp3.Mei)
-
-				case "c":
-					mp3.Play(mp3.Chang)
-				case "r":
-					mp3.Play(mp3.Rap)
-				case "l":
-					mp3.Play(mp3.Lanqiu)
-				case "a":
-					// acc.Play(acc.Aiyou)
-				case "g":
-					// acc.Play(acc.Nigangma)
-				case "s":
-					// acc.Play(acc.Shiniya)
-
-				}
-				b.Push(e.Keychar)
-				// 连续按 3 次 ESC 退出
-				if b.Len() == b.maxSize {
-					eixt := 0
-					for _, v := range b.GetAll() {
-						if v.val == rune(27) {
-							eixt++
-						}
-					}
-					if eixt == b.maxSize {
-						return
-					}
-				}
+		switch str, start := b.GetAllStr(); str {
+		case "jnt", "zyt", "jyt", "znt":
+			if time.Now().Unix()-start < 3 {
+				m = "m_long"
 			}
 		}
-	}()
+	})
+	hook.Register(hook.KeyDown, []string{"t"}, func(e hook.Event) {
+		// 获取 BoundedList List 中最后一个元素
+		m := "tiao"
+		defer func() {
+			b.Push("t", m)
+		}()
 
-	// 阻塞主线程
-	<-done
+		lastEle := b.Back()
+		if lastEle == nil {
+			return
+		}
+
+		_, ok := map[string]struct{}{"n": {}, "y": {}}[lastEle.Value.(valWithTime).String()]
+		if ok {
+			m = "tai"
+		}
+
+	})
+
+	hook.Register(hook.KeyDown, []string{"esc"}, func(e hook.Event) {
+		k := "esc"
+		b.Push(k)
+		if b.Len() == b.maxSize {
+			esc := 0
+			l, start := b.GetAll()
+			for _, v := range l {
+				if v.val == k {
+					esc++
+				}
+			}
+			if esc == b.maxSize && time.Now().Unix()-start < 2 {
+				hook.End()
+			}
+		}
+	})
+
+	s := hook.Start()
+	<-hook.Process(s)
 }
