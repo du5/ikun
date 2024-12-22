@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/du5/ikun/acc"
+	"github.com/du5/ikun/mp3"
 	hook "github.com/robotn/gohook"
 )
 
@@ -90,37 +90,37 @@ func main() {
 				k := strings.ToLower(string(e.Keychar))
 				switch k {
 				case "z", "j":
-					acc.PlayAcc(acc.Ji)
+					mp3.PlayAcc(mp3.Ji)
 				case "n", "y":
-					acc.PlayAcc(acc.Ni)
+					mp3.PlayAcc(mp3.Ni)
 				case "t":
 					lastEle := b.Back()
 					if lastEle != nil {
 						switch lastEle.Value.(valWithTime).String() {
 						case "n", "y":
-							acc.PlayAcc(acc.Tai)
+							mp3.PlayAcc(mp3.Tai)
 						default:
-							acc.PlayAcc(acc.Tiao)
+							mp3.PlayAcc(mp3.Tiao)
 						}
 					} else {
-						acc.PlayAcc(acc.Tiao)
+						mp3.PlayAcc(mp3.Tiao)
 					}
 				case "m":
 					switch str, start := b.GetAllStrWithTT(); str {
 					case "jnt", "zyn", "jyn", "znt":
 						if time.Now().Unix()-start < 3 {
-							acc.PlayAcc(acc.Mei2)
+							mp3.PlayAcc(mp3.Mei2)
 							continue
 						}
 					}
-					acc.PlayAcc(acc.Mei)
+					mp3.PlayAcc(mp3.Mei)
 
 				case "c":
-					acc.PlayAcc(acc.Chang)
+					mp3.PlayAcc(mp3.Chang)
 				case "r":
-					acc.PlayAcc(acc.Rap)
+					mp3.PlayAcc(mp3.Rap)
 				case "l":
-					acc.PlayAcc(acc.Lanqiu)
+					mp3.PlayAcc(mp3.Lanqiu)
 				case "a":
 					// acc.PlayAcc(acc.Aiyou)
 				case "g":
