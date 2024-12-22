@@ -5,7 +5,6 @@ import (
 	_ "embed"
 	"io"
 	"log"
-	"time"
 
 	"github.com/faiface/beep"
 	bmp3 "github.com/faiface/beep/mp3"
@@ -39,14 +38,18 @@ var Mei []byte
 //go:embed 美2.mp3
 var Mei2 []byte
 
-func PlayAcc(b []byte) {
-	streamer, format, err := bmp3.Decode(io.NopCloser(bytes.NewReader(b)))
+var mixer = beep.Mixer{}
+
+func init() {
+	_ = speaker.Init(44100, 4410)
+	speaker.Play(&mixer)
+}
+
+func Play(b []byte) {
+	streamer, _, err := bmp3.Decode(io.NopCloser(bytes.NewReader(b)))
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer streamer.Close()
-
-	_ = speaker.Init(format.SampleRate, format.SampleRate.N(time.Second/10))
-
-	speaker.Play(beep.Seq(streamer))
+	mixer.Add(streamer)
 }

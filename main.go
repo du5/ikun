@@ -90,41 +90,44 @@ func main() {
 				k := strings.ToLower(string(e.Keychar))
 				switch k {
 				case "z", "j":
-					mp3.PlayAcc(mp3.Ji)
+					mp3.Play(mp3.Ji)
 				case "n", "y":
-					mp3.PlayAcc(mp3.Ni)
+					mp3.Play(mp3.Ni)
 				case "t":
 					lastEle := b.Back()
 					if lastEle != nil {
 						switch lastEle.Value.(valWithTime).String() {
 						case "n", "y":
-							mp3.PlayAcc(mp3.Tai)
+							mp3.Play(mp3.Tai)
 						default:
-							mp3.PlayAcc(mp3.Tiao)
+							mp3.Play(mp3.Tiao)
 						}
 					} else {
-						mp3.PlayAcc(mp3.Tiao)
+						mp3.Play(mp3.Tiao)
 					}
 				case "m":
 					switch str, start := b.GetAllStrWithTT(); str {
 					case "jnt", "zyn", "jyn", "znt":
 						if time.Now().Unix()-start < 3 {
-							mp3.PlayAcc(mp3.Mei2)
+							mp3.Play(mp3.Mei2)
 							continue
 						}
 					}
-					mp3.PlayAcc(mp3.Mei)
+					mp3.Play(mp3.Mei)
 
 				case "c":
-					mp3.PlayAcc(mp3.Chang)
+					mp3.Play(mp3.Chang)
 				case "r":
-					mp3.PlayAcc(mp3.Rap)
+					mp3.Play(mp3.Rap)
 				case "l":
-					mp3.PlayAcc(mp3.Lanqiu)
+					mp3.Play(mp3.Lanqiu)
 				case "a":
-					// acc.PlayAcc(acc.Aiyou)
+					// acc.Play(acc.Aiyou)
 				case "g":
-					// acc.PlayAcc(acc.Nigangma)
+					// acc.Play(acc.Nigangma)
+				case "s":
+					// acc.Play(acc.Shiniya)
+
 				}
 				b.Push(e.Keychar)
 				// 连续按 3 次 ESC 退出
