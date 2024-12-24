@@ -76,9 +76,13 @@ func init() {
 	}
 }
 
-func hookRegister(k string) {
-	hook.Register(hook.KeyDown, []string{k}, func(e hook.Event) {
-		b.Push(k, k)
+func hookRegister(k ...string) {
+	hook.Register(hook.KeyDown, []string{k[0]}, func(e hook.Event) {
+		m := k[0]
+		if len(k) > 1 {
+			m = k[1]
+		}
+		b.Push(k[0], m)
 	})
 }
 
@@ -91,7 +95,7 @@ func main() {
 	hookRegister("r")
 	hookRegister("l")
 	hookRegister("j")
-	hookRegister("z")
+	hookRegister("z", "j")
 	hookRegister("n")
 	hookRegister("y")
 

@@ -46,7 +46,11 @@ type ikunMusic struct {
 func (i *ikunMusic) getIOR(k string) io.ReadCloser {
 	i.Lock()
 	defer i.Unlock()
-	return io.NopCloser(bytes.NewReader(i.Mp3[i.Index[k]]))
+	v, ok := i.Index[k]
+	if !ok {
+		return nil
+	}
+	return io.NopCloser(bytes.NewReader(i.Mp3[v]))
 }
 
 func init() {
@@ -55,7 +59,7 @@ func init() {
 	speaker.Play(&effects.Volume{
 		Streamer: mixer,
 		Base:     2,
-		Volume:   4,
+		Volume:   2,
 		Silent:   false,
 	})
 	ikunM = ikunMusic{
@@ -76,7 +80,11 @@ func init() {
 }
 
 func Play(k string) {
-	streamer, _, err := bmp3.Decode(ikunM.getIOR(k))
+	ior := ikunM.getIOR(k)
+	if ior == nil {
+		return
+	}
+	streamer, _, err := bmp3.Decode(ior)
 	if err != nil {
 		log.Fatal(err)
 	}
